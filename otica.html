@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ótica Vision oi - Simulador de Loja</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Styles & Glassmorphism */
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #f8fafc;
+            min-height: 100vh;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .glass-card {
+            background: rgba(51, 65, 85, 0.5);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.2s ease-in-out;
+        }
+
+        .glass-card:hover {
+            border-color: rgba(56, 189, 248, 0.4);
+            transform: translateY(-2px);
+        }
+
+        /* SVG Glasses Dynamic Rendering Styles */
+        .glasses-svg {
+            filter: drop-shadow(0px 8px 12px rgba(0, 0, 0, 0.3));
+            transition: all 0.3s ease;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        /* Pulse Animations */
+        @keyframes customerArrival {
+            0% { opacity: 0; transform: scale(0.9) translateY(10px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .customer-enter {
+            animation: customerArrival 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden text-slate-100">
+
+    <!-- TOP HEADER / STATS BAR -->
+    <header class="glass-panel px-6 py-4 border-b border-slate-700/50 flex flex-wrap justify-between items-center z-10 gap-4">
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-tr from-cyan-500 to-blue-600 p-2.5 rounded-xl shadow-lg shadow-cyan-500/20">
+                <i class="fa-solid fa-glasses text-2xl text-white"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-xl tracking-tight bg-gradient-to-r from-white via-slate-200 to-cyan-400 bg-clip-text text-transparent">
+                    Ótica Vision Pro
+                </h1>
+                <p class="text-xs text-slate-400" id="store-level-text">Nível 1 - Loja Bairro</p>
+            </div>
+        </div>
+
+        <!-- STATS DISPLAY -->
+        <div class="flex items-center space-x-6 text-sm font-semibold">
+            <div class="flex items-center bg-slate-900/60 px-4 py-2 rounded-xl border border-slate-700/60">
+                <i class="fa-solid fa-wallet text-emerald-400 text-lg mr-2.5"></i>
+                <div>
+                    <div class="text-[10px] text-slate-400 uppercase tracking-wider">Caixa</div>
+                    <div class="text-emerald-400 font-bold text-base" id="stat-money">R$ 500,00</div>
+                </div>
+            </div>
+
+            <div class="flex items-center bg-slate-900/60 px-4 py-2 rounded-xl border border-slate-700/60">
+                <i class="fa-solid fa-star text-amber-400 text-lg mr-2.5"></i>
+                <div>
+                    <div class="text-[10px] text-slate-400 uppercase tracking-wider">Reputação</div>
+                    <div class="text-amber-300 font-bold text-base" id="stat-reputation">50 / 100</div>
+                </div>
+            </div>
+
+            <div class="flex items-center bg-slate-900/60 px-4 py-2 rounded-xl border border-slate-700/60">
+                <i class="fa-solid fa-users text-cyan-400 text-lg mr-2.5"></i>
+                <div>
+                    <div class="text-[10px] text-slate-400 uppercase tracking-wider">Atendidos</div>
+                    <div class="text-cyan-300 font-bold text-base" id="stat-served">0</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN APP CONTENT -->
+    <main class="flex-1 flex overflow-hidden p-4 gap-4">
+
+        <!-- LEFT PANEL: CUSTOMER & ATENDIMENTO -->
+        <section class="w-full lg:w-1/3 flex flex-col gap-4">
+            <!-- Customer Reception Card -->
+            <div class="glass-panel rounded-2xl p-5 flex-1 flex flex-col justify-between relative overflow-hidden">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-2">
+                        <span class="relative flex h-2 w-2">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                        </span>
+                        Atendimento Atual
+                    </span>
+                    <span id="customer-patience-badge" class="px-2.5 py-1 bg-slate-800 text-slate-300 text-xs rounded-full border border-slate-700">
+                        Aguardando...
+                    </span>
+                </div>
+
+                <!-- Customer Avatar & Dialog -->
+                <div id="customer-box" class="my-auto flex flex-col items-center text-center space-y-4 py-4 hidden customer-enter">
+                    <div class="relative">
+                        <div id="customer-avatar" class="w-24 h-24 rounded-full bg-gradient-to-tr from-slate-700 to-slate-600 border-4 border-cyan-500/40 flex items-center justify-center text-4xl shadow-xl">
+                            <!-- Emoji / Icon inserted via JS -->
+                        </div>
+                        <div id="customer-mood" class="absolute -bottom-1 -right-1 bg-slate-900 text-xl p-1 rounded-full border border-slate-700">
+                            😊
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 id="customer-name" class="font-bold text-lg text-white">Nome do Cliente</h3>
+                        <p id="customer-type" class="text-xs text-slate-400">Cliente Exigente</p>
+                    </div>
+
+                    <!-- Speech Bubble -->
+                    <div class="bg-slate-900/90 text-slate-200 text-sm p-4 rounded-2xl border border-slate-700/80 shadow-lg relative max-w-xs leading-relaxed">
+                        <i class="fa-solid fa-quote-left text-cyan-500/30 text-2xl absolute -top-2 -left-2"></i>
+                        <p id="customer-request-text" class="relative z-10 italic">
+                            "Olá! Preciso de uma armação..."
+                        </p>
+                    </div>
+
+                    <!-- Target Specifications -->
+                    <div class="w-full grid grid-cols-2 gap-2 text-xs pt-2">
+                        <div class="bg-slate-800/80 p-2.5 rounded-xl border border-slate-700/50">
+                            <span class="text-slate-400 block mb-0.5">Armação Desejada:</span>
+                            <span id="target-frame-label" class="font-bold text-cyan-300">Redonda</span>
+                        </div>
+                        <div class="bg-slate-800/80 p-2.5 rounded-xl border border-slate-700/50">
+                            <span class="text-slate-400 block mb-0.5">Lente Solicitada:</span>
+                            <span id="target-lens-label" class="font-bold text-amber-300">Grau Padrão</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty State when no customer -->
+                <div id="empty-customer-box" class="my-auto text-center py-12 flex flex-col items-center">
+                    <div class="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center text-slate-600 text-2xl mb-3">
+                        <i class="fa-solid fa-store-slash"></i>
+                    </div>
+                    <p class="text-slate-400 text-sm">Nenhum cliente no balcão no momento.</p>
+                    <button id="btn-next-customer" onclick="game.nextCustomer()" class="mt-4 px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-semibold text-sm transition shadow-lg shadow-cyan-600/20 active:scale-95">
+                        <i class="fa-solid fa-user-plus mr-2"></i> Chamar Próximo Cliente
+                    </button>
+                </div>
+
+                <!-- Customer Action Controls -->
+                <div id="customer-actions" class="pt-4 border-t border-slate-700/50 flex gap-2 hidden">
+                    <button onclick="game.startAssembly()" class="flex-1 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl text-sm transition shadow-lg shadow-emerald-900/30 active:scale-95 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-screwdriver-wrench"></i> Montar & Vender
+                    </button>
+                    <button onclick="game.rejectCustomer()" class="px-4 py-3 bg-slate-800 hover:bg-red-900/40 text-slate-300 hover:text-red-300 border border-slate-700 rounded-xl text-sm font-semibold transition active:scale-95" title="Recusar Atendimento">
+                        <i class="fa-solid fa-user-xmark"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT PANEL: WORKBENCH / INVENTORY / SHOP TABS -->
+        <section class="w-full lg:w-2/3 flex flex-col glass-panel rounded-2xl overflow-hidden">
+            
+            <!-- Navigation Tabs -->
+            <div class="flex border-b border-slate-700/60 bg-slate-900/50 px-4 pt-3">
+                <button id="tab-btn-workshop" onclick="game.switchTab('workshop')" class="px-5 py-2.5 text-sm font-bold border-b-2 border-cyan-400 text-cyan-400 flex items-center gap-2 transition">
+                    <i class="fa-solid fa-microscope"></i> Laboratório & Prova
+                </button>
+                <button id="tab-btn-stock" onclick="game.switchTab('stock')" class="px-5 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition">
+                    <i class="fa-solid fa-boxes-stacked"></i> Estoque & Compras
+                </button>
+                <button id="tab-btn-upgrades" onclick="game.switchTab('upgrades')" class="px-5 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition">
+                    <i class="fa-solid fa-chart-line"></i> Melhorias da Loja
+                </button>
+            </div>
+
+            <!-- TAB CONTENT CONTAINER -->
+            <div class="flex-1 p-5 overflow-y-auto relative">
+
+                <!-- TAB 1: WORKBENCH (MONTADOR / PROVADOR INTERATIVO) -->
+                <div id="tab-workshop" class="space-y-6">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h2 class="text-base font-bold text-white flex items-center gap-2">
+                                BANCADA DE OPTOMETRIA E MONTAGEM
+                            </h2>
+                            <p class="text-xs text-slate-400">Combine a armação correta com o tratamento de lente exigido.</p>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Glasses Canvas Preview -->
+                    <div class="glass-card rounded-2xl p-6 flex flex-col items-center justify-center min-h-[220px] relative overflow-hidden bg-gradient-to-b from-slate-900/90 to-slate-950/90 border border-slate-700/80">
+                        <div class="absolute top-3 left-3 text-[10px] uppercase font-bold text-slate-500 tracking-wider">Visualização do Produto Customizado</div>
+                        
+                        <!-- Visual Display Box for Glasses -->
+                        <div id="glasses-preview-container" class="w-64 h-32 flex items-center justify-center relative">
+                            <!-- SVG Rendered Here dynamically -->
+                        </div>
+
+                        <!-- Current Selection Summary Badge -->
+                        <div class="mt-4 flex gap-3 text-xs">
+                            <span class="px-3 py-1 bg-slate-800 rounded-full text-slate-300 border border-slate-700">
+                                Armação: <strong id="preview-frame-name" class="text-cyan-400">Nenhuma</strong>
+                            </span>
+                            <span class="px-3 py-1 bg-slate-800 rounded-full text-slate-300 border border-slate-700">
+                                Lente: <strong id="preview-lens-name" class="text-amber-400">Nenhuma</strong>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Selection Grid Controls -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Frame Selector -->
+                        <div class="space-y-3">
+                            <label class="text-xs font-bold uppercase tracking-wider text-slate-300 flex justify-between">
+                                <span>1. Selecionar Armação</span>
+                                <span class="text-slate-500 font-normal">Disponível no Estoque</span>
+                            </label>
+                            <div class="grid grid-cols-2 gap-2" id="workshop-frame-options">
+                                <!-- Options dynamically rendered -->
+                            </div>
+                        </div>
+
+                        <!-- Lens Selector -->
+                        <div class="space-y-3">
+                            <label class="text-xs font-bold uppercase tracking-wider text-slate-300 flex justify-between">
+                                <span>2. Selecionar Tratamento Lente</span>
+                                <span class="text-slate-500 font-normal">Processamento</span>
+                            </label>
+                            <div class="grid grid-cols-2 gap-2" id="workshop-lens-options">
+                                <!-- Options dynamically rendered -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: ESTOQUE E COMPRAS -->
+                <div id="tab-stock" class="space-y-6 hidden">
+                    <div>
+                        <h2 class="text-base font-bold text-white">GERENCIAMENTO DE ESTOQUE</h2>
+                        <p class="text-xs text-slate-400">Recomponha as armações da sua ótica comprando lotes dos fornecedores.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="stock-inventory-grid">
+                        <!-- Inventory Cards Generated by JS -->
+                    </div>
+                </div>
+
+                <!-- TAB 3: MELHORIAS DA LOJA -->
+                <div id="tab-upgrades" class="space-y-6 hidden">
+                    <div>
+                        <h2 class="text-base font-bold text-white">UPGRADES E MARKETING</h2>
+                        <p class="text-xs text-slate-400">Melhore a reputação, atraia clientes mais generosos e acelere os ganhos.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="upgrades-grid">
+                        <!-- Upgrades Cards Generated by JS -->
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- NOTIFICATION SYSTEM -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- JAVASCRIPT GAME LOGIC -->
+    <script>
+        // --- DATA STRUCTURES & GAME CONFIG ---
+        const FRAMES = {
+            round: { id: 'round', name: 'Redonda', icon: 'fa-circle', basePrice: 120, svgShape: 'circle' },
+            square: { id: 'square', name: 'Quadrada', icon: 'fa-square', basePrice: 150, svgShape: 'rect' },
+            aviator: { id: 'aviator', name: 'Aviador', icon: 'fa-glasses', basePrice: 200, svgShape: 'aviator' },
+            cat: { id: 'cat', name: 'Gatinho', icon: 'fa-cat', basePrice: 180, svgShape: 'cat' }
+        };
+
+        const LENSES = {
+            prescription: { id: 'prescription', name: 'Grau Padrão', price: 80, color: 'rgba(255,255,255,0.25)', border: '#cbd5e1' },
+            sun: { id: 'sun', name: 'Proteção Solar UV', price: 110, color: 'rgba(30,27,75,0.85)', border: '#4338ca' },
+            blueblock: { id: 'blueblock', name: 'Filtro Luz Azul', price: 140, color: 'rgba(56,189,248,0.35)', border: '#38bdf8' }
+        };
+
+        const CUSTOMER_NAMES = [
+            'Lucas Silva', 'Beatriz Santos', 'Carlos Andrade', 'Fernanda Lima',
+            'Gabriel Souza', 'Mariana Costa', 'Rafael Oliveira', 'Juliana Rocha',
+            'Thiago Martins', 'Camila Ribeiro', 'Mateus Carvalho', 'Amanda Ferreira'
+        ];
+
+        const AVATARS = ['👨‍💼', '👩‍💼', '👨‍🎨', '👩‍🔬', '👨‍🎓', '👩‍🎤', '🧔', '👩‍🦰', '👨‍🦱'];
+
+        // --- GAME STATE ---
+        const game = {
+            money: 500,
+            reputation: 50,
+            servedCount: 0,
+            level: 1,
+            
+            // Frame inventory count
+            stock: {
+                round: 5,
+                square: 4,
+                aviator: 3,
+                cat: 3
+            },
+
+            // Active Customer
+            currentCustomer: null,
+
+            // Workshop Current Selections
+            selectedFrame: null,
+            selectedLens: null,
+
+            // Upgrades Tracking
+            upgrades: {
+                marketing: { level: 0, cost: 300, name: 'Campanha em Redes Sociais', desc: 'Aumenta a chegada de clientes e o valor pago em 20%.', icon: 'fa-bullhorn' },
+                decor: { level: 0, cost: 250, name: 'Decoração Premium', desc: 'Aumenta a paciência dos clientes.', icon: 'fa-couch' },
+                machinery: { level: 0, cost: 450, name: 'Facetadora Automática', desc: 'Bônus de gorjeta por precisão nas lentes.', icon: 'fa-gear' }
+            },
+
+            // --- INITIALIZATION ---
+            init() {
+                this.updateUI();
+                this.renderWorkshopControls();
+                this.renderStockGrid();
+                this.renderUpgradesGrid();
+                this.updateGlassesPreview();
+            },
+
+            // --- UI HELPERS & NOTIFICATIONS ---
+            showToast(message, type = 'info') {
+                const toast = document.createElement('div');
+                const bg = type === 'success' ? 'bg-emerald-600' : type === 'error' ? 'bg-rose-600' : 'bg-cyan-600';
+                toast.className = `${bg} text-white px-4 py-3 rounded-xl shadow-xl text-sm font-semibold flex items-center gap-2 transform transition-all duration-300 translate-y-2 opacity-0 pointer-events-auto`;
+                
+                const icon = type === 'success' ? 'fa-circle-check' : type === 'error' ? 'fa-triangle-exclamation' : 'fa-circle-info';
+                toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
+                
+                const container = document.getElementById('toast-container');
+                container.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.classList.remove('translate-y-2', 'opacity-0');
+                }, 10);
+
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'translate-y-2');
+                    setTimeout(() => toast.remove(), 300);
+                }, 3500);
+            },
+
+            updateUI() {
+                document.getElementById('stat-money').textContent = `R$ ${this.money.toFixed(2)}`;
+                document.getElementById('stat-reputation').textContent = `${this.reputation} / 100`;
+                document.getElementById('stat-served').textContent = this.servedCount;
+                document.getElementById('store-level-text').textContent = `Nível ${this.level} - Ótica ${this.level === 1 ? 'Bairro' : this.level === 2 ? 'Shopping' : 'Luxe Premium'}`;
+            },
+
+            // --- CUSTOMER SYSTEM ---
+            nextCustomer() {
+                if (this.currentCustomer) return;
+
+                const frameKeys = Object.keys(FRAMES);
+                const lensKeys = Object.keys(LENSES);
+
+                const randomFrame = frameKeys[Math.floor(Math.random() * frameKeys.length)];
+                const randomLens = lensKeys[Math.floor(Math.random() * lensKeys.length)];
+                const randomName = CUSTOMER_NAMES[Math.floor(Math.random() * CUSTOMER_NAMES.length)];
+                const randomAvatar = AVATARS[Math.floor(Math.random() * AVATARS.length)];
+
+                // Dialogue generator based on lens and frame
+                const dialogs = [
+                    `Procuro uma armação do tipo ${FRAMES[randomFrame].name.toLowerCase()} com lente ${LENSES[randomLens].name.toLowerCase()}.`,
+                    `Meu médico recomendou lentes de ${LENSES[randomLens].name.toLowerCase()}. Quero estilo ${FRAMES[randomFrame].name.toLowerCase()}.`,
+                    `Estou buscando um visual moderno com formato ${FRAMES[randomFrame].name.toLowerCase()} e proteção ${LENSES[randomLens].name.toLowerCase()}.`
+                ];
+
+                this.currentCustomer = {
+                    name: randomName,
+                    avatar: randomAvatar,
+                    targetFrame: randomFrame,
+                    targetLens: randomLens,
+                    dialog: dialogs[Math.floor(Math.random() * dialogs.length)],
+                    patience: 100 + (this.upgrades.decor.level * 25)
+                };
+
+                // Update Customer UI Card
+                document.getElementById('empty-customer-box').classList.add('hidden');
+                const custBox = document.getElementById('customer-box');
+                custBox.classList.remove('hidden');
+
+                document.getElementById('customer-avatar').textContent = this.currentCustomer.avatar;
+                document.getElementById('customer-name').textContent = this.currentCustomer.name;
+                document.getElementById('customer-request-text').textContent = `"${this.currentCustomer.dialog}"`;
+                document.getElementById('target-frame-label').textContent = FRAMES[randomFrame].name;
+                document.getElementById('target-lens-label').textContent = LENSES[randomLens].name;
+                document.getElementById('customer-patience-badge').textContent = `Paciência: 100%`;
+
+                document.getElementById('customer-actions').classList.remove('hidden');
+                this.showToast(`Novo cliente chegou: ${this.currentCustomer.name}`, 'info');
+            },
+
+            rejectCustomer() {
+                if (!this.currentCustomer) return;
+                this.showToast(`Você recusou o atendimento de ${this.currentCustomer.name}.`, 'error');
+                this.reputation = Math.max(0, this.reputation - 2);
+                this.clearCustomer();
+                this.updateUI();
+            },
+
+            clearCustomer() {
+                this.currentCustomer = null;
+                document.getElementById('customer-box').classList.add('hidden');
+                document.getElementById('customer-actions').classList.add('hidden');
+                document.getElementById('empty-customer-box').classList.remove('hidden');
+            },
+
+            // --- ASSEMBLY & SALE SYSTEM ---
+            selectFrame(frameId) {
+                if (this.stock[frameId] <= 0) {
+                    this.showToast(`Armação ${FRAMES[frameId].name} fora de estoque! Compre mais no menu Estoque.`, 'error');
+                    return;
+                }
+                this.selectedFrame = frameId;
+                this.updateWorkshopControls();
+                this.updateGlassesPreview();
+            },
+
+            selectLens(lensId) {
+                this.selectedLens = lensId;
+                this.updateWorkshopControls();
+                this.updateGlassesPreview();
+            },
+
+            startAssembly() {
+                if (!this.currentCustomer) {
+                    this.showToast('Nenhum cliente para atender no momento!', 'error');
+                    return;
+                }
+
+                if (!this.selectedFrame || !this.selectedLens) {
+                    this.showToast('Selecione uma armação e um tipo de lente na bancada antes de vender!', 'error');
+                    return;
+                }
+
+                // Verify match with customer needs
+                const isFrameCorrect = this.selectedFrame === this.currentCustomer.targetFrame;
+                const isLensCorrect = this.selectedLens === this.currentCustomer.targetLens;
+
+                // Base sale value calculation
+                const framePrice = FRAMES[this.selectedFrame].basePrice;
+                const lensPrice = LENSES[this.selectedLens].price;
+                let totalSale = framePrice + lensPrice;
+
+                // Bonus from Marketing upgrade
+                if (this.upgrades.marketing.level > 0) {
+                    totalSale *= (1 + (this.upgrades.marketing.level * 0.20));
+                }
+
+                // Check outcome
+                if (isFrameCorrect && isLensCorrect) {
+                    // Perfect Match
+                    this.stock[this.selectedFrame]--;
+                    this.money += totalSale;
+                    this.reputation = Math.min(100, this.reputation + 5);
+                    this.servedCount++;
+
+                    // Check for shop level up
+                    if (this.servedCount === 5) this.level = 2;
+                    if (this.servedCount === 15) this.level = 3;
+
+                    this.showToast(`Venda perfeita! Você faturou R$ ${totalSale.toFixed(2)} (+5 Reputação)`, 'success');
+                    this.clearCustomer();
+                    this.resetWorkshopSelection();
+                } else {
+                    // Incorrect Match
+                    this.reputation = Math.max(0, this.reputation - 8);
+                    this.showToast(`Cliente insatisfeito! O óculos não atende o pedido. (-8 Reputação)`, 'error');
+                }
+
+                this.updateUI();
+                this.renderStockGrid();
+            },
+
+            resetWorkshopSelection() {
+                this.selectedFrame = null;
+                this.selectedLens = null;
+                this.updateWorkshopControls();
+                this.updateGlassesPreview();
+            },
+
+            // --- TAB INTERACTION ---
+            switchTab(tabName) {
+                const tabs = ['workshop', 'stock', 'upgrades'];
+                tabs.forEach(tab => {
+                    const el = document.getElementById(`tab-${tab}`);
+                    const btn = document.getElementById(`tab-btn-${tab}`);
+                    if (tab === tabName) {
+                        el.classList.remove('hidden');
+                        btn.className = "px-5 py-2.5 text-sm font-bold border-b-2 border-cyan-400 text-cyan-400 flex items-center gap-2 transition";
+                    } else {
+                        el.classList.add('hidden');
+                        btn.className = "px-5 py-2.5 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition";
+                    }
+                });
+            },
+
+            // --- RENDERING WORKSHOP CONTROLS ---
+            renderWorkshopControls() {
+                const frameContainer = document.getElementById('workshop-frame-options');
+                frameContainer.innerHTML = '';
+
+                Object.keys(FRAMES).forEach(key => {
+                    const item = FRAMES[key];
+                    const count = this.stock[key];
+                    const isSelected = this.selectedFrame === key;
+
+                    const btn = document.createElement('button');
+                    btn.onclick = () => this.selectFrame(key);
+                    btn.className = `p-3 rounded-xl border text-left flex flex-col justify-between transition ${
+                        isSelected 
+                            ? 'bg-cyan-950/80 border-cyan-400 text-white ring-2 ring-cyan-500/30' 
+                            : 'bg-slate-800/60 border-slate-700/80 text-slate-300 hover:border-slate-500'
+                    }`;
+
+                    btn.innerHTML = `
+                        <div class="flex justify-between items-center w-full mb-1">
+                            <i class="fa-solid ${item.icon} text-lg ${isSelected ? 'text-cyan-400' : 'text-slate-400'}"></i>
+                            <span class="text-[10px] px-2 py-0.5 ${count > 0 ? 'bg-slate-700 text-cyan-300' : 'bg-red-900/60 text-red-300'} rounded-full font-bold">
+                                Est: ${count}
+                            </span>
+                        </div>
+                        <span class="font-bold text-sm block">${item.name}</span>
+                        <span class="text-xs text-slate-400">R$ ${item.basePrice.toFixed(2)}</span>
+                    `;
+                    frameContainer.appendChild(btn);
+                });
+
+                const lensContainer = document.getElementById('workshop-lens-options');
+                lensContainer.innerHTML = '';
+
+                Object.keys(LENSES).forEach(key => {
+                    const item = LENSES[key];
+                    const isSelected = this.selectedLens === key;
+
+                    const btn = document.createElement('button');
+                    btn.onclick = () => this.selectLens(key);
+                    btn.className = `p-3 rounded-xl border text-left flex flex-col justify-between transition ${
+                        isSelected 
+                            ? 'bg-amber-950/80 border-amber-400 text-white ring-2 ring-amber-500/30' 
+                            : 'bg-slate-800/60 border-slate-700/80 text-slate-300 hover:border-slate-500'
+                    }`;
+
+                    btn.innerHTML = `
+                        <div class="flex justify-between items-center w-full mb-1">
+                            <i class="fa-solid fa-circle text-lg" style="color: ${item.border}"></i>
+                            <span class="text-[10px] text-amber-400 font-bold">+R$ ${item.price}</span>
+                        </div>
+                        <span class="font-bold text-sm block">${item.name}</span>
+                        <span class="text-xs text-slate-400">Tratamento</span>
+                    `;
+                    lensContainer.appendChild(btn);
+                });
+            },
+
+            updateWorkshopControls() {
+                this.renderWorkshopControls();
+                document.getElementById('preview-frame-name').textContent = this.selectedFrame ? FRAMES[this.selectedFrame].name : 'Nenhuma';
+                document.getElementById('preview-lens-name').textContent = this.selectedLens ? LENSES[this.selectedLens].name : 'Nenhuma';
+            },
+
+            // --- SVG GLASSES RENDER ENGINE ---
+            updateGlassesPreview() {
+                const container = document.getElementById('glasses-preview-container');
+                const frame = this.selectedFrame ? FRAMES[this.selectedFrame] : null;
+                const lens = this.selectedLens ? LENSES[this.selectedLens] : null;
+
+                const lensFill = lens ? lens.color : 'rgba(255,255,255,0.05)';
+                const strokeColor = frame ? '#38bdf8' : '#475569';
+
+                let shapesSVG = '';
+
+                if (!frame || frame.svgShape === 'circle') {
+                    shapesSVG = `
+                        <!-- Left Lens -->
+                        <circle cx="70" cy="65" r="32" fill="${lensFill}" stroke="${strokeColor}" stroke-width="6" />
+                        <!-- Right Lens -->
+                        <circle cx="170" cy="65" r="32" fill="${lensFill}" stroke="${strokeColor}" stroke-width="6" />
+                    `;
+                } else if (frame.svgShape === 'rect') {
+                    shapesSVG = `
+                        <rect x="38" y="38" width="64" height="54" rx="8" fill="${lensFill}" stroke="${strokeColor}" stroke-width="6" />
+                        <rect x="138" y="38" width="64" height="54" rx="8" fill="${lensFill}" stroke="${strokeColor}" stroke-width="6" />
+                    `;
+                } else if (frame.svgShape === 'aviator') {
+                    shapesSVG = `
+                        <path d="M 38 42 Q 70 35 102 42 Q 100 85 70 92 Q 40 85 38 42 Z" fill="${lensFill}" stroke="${strokeColor}" stroke-width="5" />
+                        <path d="M 138 42 Q 170 35 202 42 Q 200 85 170 92 Q 140 85 138 42 Z" fill="${lensFill}" stroke="${strokeColor}" stroke-width="5" />
+                        <!-- Top Bar for Aviator -->
+                        <line x1="65" y1="38" x2="175" y2="38" stroke="${strokeColor}" stroke-width="4" />
+                    `;
+                } else if (frame.svgShape === 'cat') {
+                    shapesSVG = `
+                        <path d="M 32 40 L 102 50 C 100 85 70 90 45 80 Z" fill="${lensFill}" stroke="${strokeColor}" stroke-width="5" />
+                        <path d="M 208 40 L 138 50 C 140 85 170 90 195 80 Z" fill="${lensFill}" stroke="${strokeColor}" stroke-width="5" />
+                    `;
+                }
+
+                container.innerHTML = `
+                    <svg width="240" height="130" viewBox="0 0 240 130" class="glasses-svg">
+                        <!-- Bridge -->
+                        <path d="M 102 60 Q 120 52 138 60" fill="none" stroke="${strokeColor}" stroke-width="5" stroke-linecap="round" />
+                        <!-- Temples (Sides) -->
+                        <path d="M 38 55 L 10 45" fill="none" stroke="${strokeColor}" stroke-width="5" stroke-linecap="round" />
+                        <path d="M 202 55 L 230 45" fill="none" stroke="${strokeColor}" stroke-width="5" stroke-linecap="round" />
+                        <!-- Lenses & Frame Body -->
+                        ${shapesSVG}
+                        <!-- Glass Reflection Highlight -->
+                        <path d="M 48 48 L 65 48" stroke="rgba(255,255,255,0.5)" stroke-width="3" stroke-linecap="round" />
+                        <path d="M 148 48 L 165 48" stroke="rgba(255,255,255,0.5)" stroke-width="3" stroke-linecap="round" />
+                    </svg>
+                `;
+            },
+
+            // --- STOCK & SHOP MANAGEMENT ---
+            buyStock(frameId, quantity, totalCost) {
+                if (this.money < totalCost) {
+                    this.showToast('Saldo insuficiente para comprar este lote de armações!', 'error');
+                    return;
+                }
+
+                this.money -= totalCost;
+                this.stock[frameId] += quantity;
+                this.showToast(`Comprado pacote de ${quantity}x Armações ${FRAMES[frameId].name}!`, 'success');
+                this.updateUI();
+                this.renderStockGrid();
+                this.renderWorkshopControls();
+            },
+
+            renderStockGrid() {
+                const grid = document.getElementById('stock-inventory-grid');
+                grid.innerHTML = '';
+
+                Object.keys(FRAMES).forEach(key => {
+                    const item = FRAMES[key];
+                    const currentQty = this.stock[key];
+                    const batchQty = 5;
+                    const batchCost = (item.basePrice * batchQty) * 0.6; // 40% wholesale discount
+
+                    const card = document.createElement('div');
+                    card.className = "glass-card rounded-xl p-4 flex flex-col justify-between border border-slate-700/60";
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h3 class="font-bold text-white flex items-center gap-2">
+                                    <i class="fa-solid ${item.icon} text-cyan-400"></i> ${item.name}
+                                </h3>
+                                <p class="text-xs text-slate-400">Preço de Venda: R$ ${item.basePrice.toFixed(2)}</p>
+                            </div>
+                            <span class="text-xs font-bold px-2.5 py-1 bg-slate-800 text-slate-300 rounded-lg border border-slate-700">
+                                Em Estoque: ${currentQty}
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between pt-3 border-t border-slate-700/50 mt-2">
+                            <div>
+                                <span class="text-[10px] text-slate-400 block uppercase">Lote Atacado (5 un)</span>
+                                <span class="font-bold text-emerald-400 text-sm">R$ ${batchCost.toFixed(2)}</span>
+                            </div>
+                            <button onclick="game.buyStock('${key}', ${batchQty}, ${batchCost})" class="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-bold transition shadow-md">
+                                <i class="fa-solid fa-cart-shopping mr-1"></i> Comprar Lote
+                            </button>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            },
+
+            // --- UPGRADES MANAGEMENT ---
+            buyUpgrade(key) {
+                const up = this.upgrades[key];
+                if (this.money < up.cost) {
+                    this.showToast('Dinheiro insuficiente para comprar esta melhoria!', 'error');
+                    return;
+                }
+
+                this.money -= up.cost;
+                up.level++;
+                up.cost = Math.round(up.cost * 1.6);
+
+                this.showToast(`Upgrade Nível ${up.level} adquirido: ${up.name}!`, 'success');
+                this.updateUI();
+                this.renderUpgradesGrid();
+            },
+
+            renderUpgradesGrid() {
+                const grid = document.getElementById('upgrades-grid');
+                grid.innerHTML = '';
+
+                Object.keys(this.upgrades).forEach(key => {
+                    const up = this.upgrades[key];
+                    const card = document.createElement('div');
+                    card.className = "glass-card rounded-xl p-4 flex flex-col justify-between border border-slate-700/60";
+                    card.innerHTML = `
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="flex items-center space-x-2">
+                                    <div class="p-2 bg-slate-800 rounded-lg text-amber-400">
+                                        <i class="fa-solid ${up.icon}"></i>
+                                    </div>
+                                    <h3 class="font-bold text-white text-sm">${up.name}</h3>
+                                </div>
+                                <span class="text-xs bg-slate-800 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-slate-700">
+                                    Nível ${up.level}
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-400 mb-4 leading-relaxed">${up.desc}</p>
+                        </div>
+                        <div class="flex items-center justify-between pt-3 border-t border-slate-700/50">
+                            <span class="font-bold text-emerald-400 text-sm">R$ ${up.cost.toFixed(2)}</span>
+                            <button onclick="game.buyUpgrade('${key}')" class="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-bold transition shadow-md">
+                                <i class="fa-solid fa-arrow-up-right-dots mr-1"></i> Melhorar
+                            </button>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            }
+        };
+
+        // --- START GAME ON LOAD ---
+        window.onload = () => {
+            game.init();
+        };
+    </script>
+</body>
+</html>
